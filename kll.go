@@ -59,15 +59,19 @@ func (s *Sketch) compact() {
 				}
 				compacted := s.compactors[h].compact()
 				s.compactors[h+1] = append(s.compactors[h+1], compacted...)
-				s.size = 0
-				for _, c := range s.compactors {
-					s.size += len(c)
-				}
+				s.updateSize()
 				if s.size < s.maxSize {
 					break
 				}
 			}
 		}
+	}
+}
+
+func (s *Sketch) updateSize() {
+	s.size = 0
+	for _, c := range s.compactors {
+		s.size += len(c)
 	}
 }
 
@@ -78,11 +82,6 @@ func (s *Sketch) Merge(t *Sketch) {
 
 	for h, c := range t.compactors {
 		s.compactors[h] = append(s.compactors[h], c...)
-	}
-
-	s.size = 0
-	for _, c := range s.compactors {
-		s.size += len(c)
 	}
 
 	s.compact()
