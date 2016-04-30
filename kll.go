@@ -71,6 +71,23 @@ func (s *Sketch) compact() {
 	}
 }
 
+func (s *Sketch) Merge(t *Sketch) {
+	for s.H < t.H {
+		s.grow()
+	}
+
+	for h, c := range t.compactors {
+		s.compactors[h] = append(s.compactors[h], c...)
+	}
+
+	s.size = 0
+	for _, c := range s.compactors {
+		s.size += len(c)
+	}
+
+	s.compact()
+}
+
 // Rank estimates the rank of the value x in the stream.
 func (s *Sketch) Rank(x float64) int {
 	var r int
