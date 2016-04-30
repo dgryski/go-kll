@@ -84,6 +84,7 @@ func (s *Sketch) Merge(t *Sketch) {
 		s.compactors[h] = append(s.compactors[h], c...)
 	}
 
+	s.updateSize()
 	s.compact()
 }
 
