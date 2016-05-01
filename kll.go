@@ -57,8 +57,7 @@ func (s *Sketch) compact() {
 				if h+1 >= s.H {
 					s.grow()
 				}
-				compacted := s.compactors[h].compact()
-				s.compactors[h+1] = append(s.compactors[h+1], compacted...)
+				s.compactors[h+1] = s.compactors[h].compact(s.compactors[h+1])
 				s.updateSize()
 				if s.size < s.maxSize {
 					break
@@ -103,9 +102,16 @@ func (s *Sketch) Rank(x float64) int {
 
 type compactor []float64
 
-func (c *compactor) compact() []float64 {
+func (c *compactor) compact(dst []float64) []float64 {
 	sort.Float64s([]float64(*c))
-	dst := make([]float64, 0, len(*c)/2)
+	free := cap(dst) - len(dst)
+	if free < len(*c)/2 {
+		extra := len(*c)/2 - free
+		newdst := make([]float64, len(dst), cap(dst)+extra)
+		copy(newdst, dst)
+		dst = newdst
+	}
+
 	// choose either the evens or the odds
 	offs := rand.Intn(2)
 	for len(*c) >= 2 {
