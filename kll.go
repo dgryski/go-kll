@@ -74,6 +74,7 @@ func (s *Sketch) updateSize() {
 	}
 }
 
+// Merge merges a second sketch into this one
 func (s *Sketch) Merge(t *Sketch) {
 	for s.H < t.H {
 		s.grow()
