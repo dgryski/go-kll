@@ -101,6 +101,29 @@ func (s *Sketch) Rank(x float64) int {
 	return r
 }
 
+func (s *Sketch) Count() int {
+	var n int
+	for h, c := range s.compactors {
+		n += len(c) * (1 << uint(h))
+	}
+	return n
+}
+
+// Quantile estimates the quantile of the value x in the stream.
+func (s *Sketch) Quantile(x float64) float64 {
+	var r, n int
+	for h, c := range s.compactors {
+		for _, v := range c {
+			w := 1 << uint(h)
+			if v <= x {
+				r += w
+			}
+			n += w
+		}
+	}
+	return float64(r) / float64(n)
+}
+
 type CDF []Quantile
 
 func (q CDF) Len() int { return len(q) }
@@ -115,7 +138,6 @@ type Quantile struct {
 }
 
 func (s *Sketch) CDF() CDF {
-
 	q := make(CDF, 0, s.size)
 
 	var totalW float64
@@ -138,17 +160,52 @@ func (s *Sketch) CDF() CDF {
 	return q
 }
 
-func (q CDF) Rank(x float64) float64 {
+// Quantile estimates the quantile of the value x in the stream.
+func (q CDF) Quantile(x float64) float64 {
+	idx := sort.Search(len(q), func(i int) bool { return q[i].V >= x })
+	if idx == 0 {
+		return 0
+	}
+	return q[idx-1].Q
+}
+
+// Query estimates the value given quantile p.
+func (q CDF) Query(p float64) float64 {
+	idx := sort.Search(len(q), func(i int) bool { return q[i].Q >= p })
+	if idx == len(q) {
+		return q[len(q)-1].V
+	}
+	return q[idx].V
+}
+
+// QuantileLI estimates the quantile of the value x in the stream using linear interpolation.
+func (q CDF) QuantileLI(x float64) float64 {
 	idx := sort.Search(len(q), func(i int) bool { return q[i].V >= x })
 	if idx == len(q) {
 		return 1
 	}
-	return q[idx].Q
+	if idx == 0 {
+		return 0
+	}
+	// a < x <= b
+	a, aq := q[idx-1].V, q[idx-1].Q
+	b, bq := q[idx].V, q[idx].Q
+	return ((a-x)*bq + (x-b)*aq) / (a - b)
 }
 
-func (q CDF) Query(p float64) float64 {
+// QueryLI estimates the value given quantile p using linear interpolation.
+func (q CDF) QueryLI(p float64) float64 {
 	idx := sort.Search(len(q), func(i int) bool { return q[i].Q >= p })
-	return q[idx].V
+	if idx == len(q) {
+		return q[len(q)-1].V
+	}
+	if idx == 0 {
+		return q[0].V
+	}
+	// aq < p <= b
+	a, aq := q[idx-1].V, q[idx-1].Q
+	b, bq := q[idx].V, q[idx].Q
+	return ((aq-p)*b + (p-bq)*a) / (aq - bq)
 }
 
 type compactor []float64
