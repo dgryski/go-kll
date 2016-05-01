@@ -101,6 +101,56 @@ func (s *Sketch) Rank(x float64) int {
 	return r
 }
 
+type CDF []Quantile
+
+func (q CDF) Len() int { return len(q) }
+
+func (q CDF) Less(i int, j int) bool { return q[i].V < q[j].V }
+
+func (q CDF) Swap(i int, j int) { q[i], q[j] = q[j], q[i] }
+
+type Quantile struct {
+	Q float64
+	V float64
+}
+
+func (s *Sketch) CDF() CDF {
+
+	q := make(CDF, 0, s.size)
+
+	var totalW float64
+	for h, c := range s.compactors {
+		weight := float64(int(1 << uint(h)))
+		for _, v := range c {
+			q = append(q, Quantile{Q: weight, V: v})
+		}
+		totalW += float64(len(c)) * weight
+	}
+
+	sort.Sort(q)
+
+	var curW float64
+	for i := range q {
+		curW += q[i].Q
+		q[i].Q = curW / totalW
+	}
+
+	return q
+}
+
+func (q CDF) Rank(x float64) float64 {
+	idx := sort.Search(len(q), func(i int) bool { return q[i].V >= x })
+	if idx == len(q) {
+		return 1
+	}
+	return q[idx].Q
+}
+
+func (q CDF) Query(p float64) float64 {
+	idx := sort.Search(len(q), func(i int) bool { return q[i].Q >= p })
+	return q[idx].V
+}
+
 type compactor []float64
 
 func (c *compactor) compact(dst []float64) []float64 {
