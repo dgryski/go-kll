@@ -55,18 +55,22 @@ func encodeFloats(w *bitstream.BitWriter, fs []float64) {
 		cur := math.Float64bits(f)
 		delta := prev ^ cur
 		prev = cur
-		m := delta & ((1 << 52) - 1)
 		se := delta >> 52
-		nm := 64 - bits.Clz(m)
-
 		if se == 0 {
 			w.WriteBit(bitstream.Zero)
 		} else {
 			w.WriteBit(bitstream.One)
 			w.WriteBits(se, 12)
 		}
-		// 0 <= nm <= 52
-		w.WriteBits(nm, 6)
+		m := delta & ((1 << 52) - 1)
+		nm := 64 - bits.Clz(m)
+		if 52-nm > 7 {
+			w.WriteBit(bitstream.One)
+			w.WriteBits(52-nm, 6)
+		} else {
+			w.WriteBit(bitstream.Zero)
+			w.WriteBits(52-nm, 3)
+		}
 		w.WriteBits(m, int(nm))
 	}
 }
@@ -93,14 +97,25 @@ func decodeFloats(r *bitstream.BitReader, fs []float64) error {
 				return err
 			}
 		}
-		nm, err := r.ReadBits(6)
+		bit, err = r.ReadBit()
 		if err != nil {
 			return err
 		}
+		var nm uint64
+		if bit == bitstream.One {
+			nm, err = r.ReadBits(6)
+		} else {
+			nm, err = r.ReadBits(3)
+		}
+		if err != nil {
+			return err
+		}
+		nm = 52 - nm
 		m, err := r.ReadBits(int(nm))
 		if err != nil {
 			return err
 		}
+		m <<= 52 - nm
 		delta := (se << 52) | m
 		cur := prev ^ delta
 		prev = cur
