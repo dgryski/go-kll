@@ -42,7 +42,7 @@ func TestEncodeSmallInts(t *testing.T) {
 			}
 		}
 		if !eq {
-			t.Fatalf("expected %v, got %v", tc, got)
+			t.Errorf("expected %v, got %v", tc, got)
 		}
 	}
 }
