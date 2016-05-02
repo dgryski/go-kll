@@ -12,7 +12,7 @@ import (
 
 // Sketch is a streaming quantiles sketch
 type Sketch struct {
-	compactors []compactor
+	compactors compactors
 	k          int
 	H          int
 	size       int
@@ -230,3 +230,5 @@ func (c *compactor) compact(dst []float64) []float64 {
 
 	return dst
 }
+
+type compactors []compactor
