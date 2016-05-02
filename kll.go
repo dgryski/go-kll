@@ -202,7 +202,7 @@ func (q CDF) QueryLI(p float64) float64 {
 	if idx == 0 {
 		return q[0].V
 	}
-	// aq < p <= b
+	// aq < p <= bq
 	a, aq := q[idx-1].V, q[idx-1].Q
 	b, bq := q[idx].V, q[idx].Q
 	return ((aq-p)*b + (p-bq)*a) / (aq - bq)
