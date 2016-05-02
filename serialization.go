@@ -16,7 +16,6 @@ type serializable struct {
 	H       int
 	Size    int
 	MaxSize int
-	Count   int
 }
 
 type flat struct {
