@@ -14,25 +14,29 @@ func xorshiftMult64(x uint64) uint64 {
 // to the random number generator.
 type coin struct {
 	st   uint64
-	val  uint64
-	bits int
+	mask uint64
 }
 
 func newCoin() coin {
+	// we want the first call to toss to do an xorshiftMult64 so that we don't
+	// have to make a second call into rand to avoid the problem where the
+	// 64th call would always be a zero. to accomplish that, we leave mask as
+	// zero.
 	return coin{
-		st: uint64(rand.Int63()),
+		st:   uint64(rand.Int63()),
+		mask: 0,
 	}
 }
 
 // v is either 0 or 1
 func (c *coin) toss() (v int) {
-	if c.bits == 0 {
+	if c.mask == 0 {
 		c.st = xorshiftMult64(c.st)
-		c.val = c.st
-		c.bits = 64
+		c.mask = 1
 	}
-	c.bits--
-	v = int(c.val & 1)
-	c.val >>= 1
+	if c.st&c.mask > 0 {
+		v = 1
+	}
+	c.mask <<= 1
 	return v
 }
