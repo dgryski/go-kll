@@ -58,9 +58,16 @@ func (s *Sketch) compact() {
 				if h+1 >= s.H {
 					s.grow()
 				}
+
+				prev_h := len(s.compactors[h])
+				prev_h1 := len(s.compactors[h+1])
+
 				s.compactors[h+1] = s.compactors[h].compact(
 					&s.co, s.compactors[h+1])
-				s.updateSize()
+
+				s.size += len(s.compactors[h]) - prev_h
+				s.size += len(s.compactors[h+1]) - prev_h1
+
 				if s.size < s.maxSize {
 					break
 				}
