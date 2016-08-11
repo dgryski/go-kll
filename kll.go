@@ -41,8 +41,7 @@ func (s *Sketch) grow() {
 }
 
 func (s *Sketch) capacity(h int) int {
-	height := float64(s.H - h - 1)
-	return int(math.Ceil(float64(s.k)*math.Pow((2.0/3.0), height))) + 1
+	return int(math.Ceil(float64(s.k)*computeHeight(s.H-h-1))) + 1
 }
 
 // Update adds x to the stream.
