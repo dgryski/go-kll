@@ -6,7 +6,6 @@ package kll
 
 import (
 	"math"
-	"math/rand"
 	"sort"
 )
 
@@ -17,12 +16,15 @@ type Sketch struct {
 	H          int
 	size       int
 	maxSize    int
+
+	co coin
 }
 
 // New returns a new Sketch.  k controls the maximum memory used by the stream, which is 3*k + lg(n).
 func New(k int) *Sketch {
 	s := Sketch{
-		k: k,
+		k:  k,
+		co: newCoin(),
 	}
 	s.grow()
 	return &s
@@ -57,7 +59,8 @@ func (s *Sketch) compact() {
 				if h+1 >= s.H {
 					s.grow()
 				}
-				s.compactors[h+1] = s.compactors[h].compact(s.compactors[h+1])
+				s.compactors[h+1] = s.compactors[h].compact(
+					&s.co, s.compactors[h+1])
 				s.updateSize()
 				if s.size < s.maxSize {
 					break
@@ -210,7 +213,7 @@ func (q CDF) QueryLI(p float64) float64 {
 
 type compactor []float64
 
-func (c *compactor) compact(dst []float64) []float64 {
+func (c *compactor) compact(co *coin, dst []float64) []float64 {
 	sort.Float64s([]float64(*c))
 	free := cap(dst) - len(dst)
 	if free < len(*c)/2 {
@@ -221,7 +224,7 @@ func (c *compactor) compact(dst []float64) []float64 {
 	}
 
 	// choose either the evens or the odds
-	offs := rand.Intn(2)
+	offs := co.toss()
 	for len(*c) >= 2 {
 		l := len(*c) - 2
 		dst = append(dst, (*c)[l+offs])
