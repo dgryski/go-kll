@@ -220,14 +220,15 @@ type compactor []float64
 
 func (c *compactor) compact(co *coin, dst []float64) []float64 {
 	l := len(*c)
-	if l > 100 {
-		sort.Float64s([]float64(*c))
-	} else if l == 0 || l == 1 {
+
+	if l == 0 || l == 1 {
 	} else if l == 2 {
 		c := *c
 		if c[0] > c[1] {
 			c[0], c[1] = c[1], c[0]
 		}
+	} else if l > 100 {
+		sort.Float64s([]float64(*c))
 	} else {
 		c.insertionSort()
 	}
@@ -261,7 +262,7 @@ func (c compactor) insertionSort() {
 		if j == i {
 			continue
 		}
-		copy(c[j+1:], c[j:])
+		copy(c[j+1:], c[j:i])
 		c[j] = v
 	}
 }
