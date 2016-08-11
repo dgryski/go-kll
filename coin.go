@@ -17,20 +17,12 @@ type coin struct {
 	mask uint64
 }
 
-func newCoin() coin {
-	// we want the first call to toss to do an xorshiftMult64 so that we don't
-	// have to make a second call into rand to avoid the problem where the
-	// 64th call would always be a zero. to accomplish that, we leave mask as
-	// zero.
-	return coin{
-		st:   uint64(rand.Int63()),
-		mask: 0,
-	}
-}
-
 // v is either 0 or 1
 func (c *coin) toss() (v int) {
 	if c.mask == 0 {
+		if c.st == 0 {
+			c.st = uint64(rand.Int63())
+		}
 		c.st = xorshiftMult64(c.st)
 		c.mask = 1
 	}

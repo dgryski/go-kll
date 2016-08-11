@@ -23,8 +23,7 @@ type Sketch struct {
 // New returns a new Sketch.  k controls the maximum memory used by the stream, which is 3*k + lg(n).
 func New(k int) *Sketch {
 	s := Sketch{
-		k:  k,
-		co: newCoin(),
+		k: k,
 	}
 	s.grow()
 	return &s
