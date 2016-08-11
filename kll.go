@@ -213,7 +213,13 @@ func (q CDF) QueryLI(p float64) float64 {
 type compactor []float64
 
 func (c *compactor) compact(co *coin, dst []float64) []float64 {
-	sort.Float64s([]float64(*c))
+	if len(*c) == 2 {
+		if (*c)[1] < (*c)[0] {
+			(*c)[1], (*c)[0] = (*c)[0], (*c)[1]
+		}
+	} else {
+		sort.Float64s([]float64(*c))
+	}
 	free := cap(dst) - len(dst)
 	if free < len(*c)/2 {
 		extra := len(*c)/2 - free
