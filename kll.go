@@ -219,13 +219,19 @@ func (q CDF) QueryLI(p float64) float64 {
 type compactor []float64
 
 func (c *compactor) compact(co *coin, dst []float64) []float64 {
-	if len(*c) == 2 {
-		if (*c)[1] < (*c)[0] {
-			(*c)[1], (*c)[0] = (*c)[0], (*c)[1]
+	l := len(*c)
+	if l > 100 {
+		sort.Float64s([]float64(*c))
+	} else if l == 0 || l == 1 {
+	} else if l == 2 {
+		c := *c
+		if c[0] > c[1] {
+			c[0], c[1] = c[1], c[0]
 		}
 	} else {
-		sort.Float64s([]float64(*c))
+		c.insertionSort()
 	}
+
 	free := cap(dst) - len(dst)
 	if free < len(*c)/2 {
 		extra := len(*c)/2 - free
@@ -243,4 +249,19 @@ func (c *compactor) compact(co *coin, dst []float64) []float64 {
 	}
 
 	return dst
+}
+
+func (c compactor) insertionSort() {
+	l := len(c)
+	for i := 1; i < l; i++ {
+		v := c[i]
+		j := i
+		for ; j > 0 && c[j-1] > v; j-- {
+		}
+		if j == i {
+			continue
+		}
+		copy(c[j+1:], c[j:])
+		c[j] = v
+	}
 }
