@@ -6,7 +6,6 @@ package kll
 
 import (
 	"math"
-	"math/rand"
 	"sort"
 )
 
@@ -17,6 +16,8 @@ type Sketch struct {
 	H          int
 	size       int
 	maxSize    int
+
+	co coin
 }
 
 // New returns a new Sketch.  k controls the maximum memory used by the stream, which is 3*k + lg(n).
@@ -39,8 +40,7 @@ func (s *Sketch) grow() {
 }
 
 func (s *Sketch) capacity(h int) int {
-	height := float64(s.H - h - 1)
-	return int(math.Ceil(float64(s.k)*math.Pow((2.0/3.0), height))) + 1
+	return int(math.Ceil(float64(s.k)*computeHeight(s.H-h-1))) + 1
 }
 
 // Update adds x to the stream.
@@ -57,8 +57,16 @@ func (s *Sketch) compact() {
 				if h+1 >= s.H {
 					s.grow()
 				}
-				s.compactors[h+1] = s.compactors[h].compact(s.compactors[h+1])
-				s.updateSize()
+
+				prev_h := len(s.compactors[h])
+				prev_h1 := len(s.compactors[h+1])
+
+				s.compactors[h+1] = s.compactors[h].compact(
+					&s.co, s.compactors[h+1])
+
+				s.size += len(s.compactors[h]) - prev_h
+				s.size += len(s.compactors[h+1]) - prev_h1
+
 				if s.size < s.maxSize {
 					break
 				}
@@ -210,8 +218,21 @@ func (q CDF) QueryLI(p float64) float64 {
 
 type compactor []float64
 
-func (c *compactor) compact(dst []float64) []float64 {
-	sort.Float64s([]float64(*c))
+func (c *compactor) compact(co *coin, dst []float64) []float64 {
+	l := len(*c)
+
+	if l == 0 || l == 1 {
+	} else if l == 2 {
+		c := *c
+		if c[0] > c[1] {
+			c[0], c[1] = c[1], c[0]
+		}
+	} else if l > 100 {
+		sort.Float64s([]float64(*c))
+	} else {
+		c.insertionSort()
+	}
+
 	free := cap(dst) - len(dst)
 	if free < len(*c)/2 {
 		extra := len(*c)/2 - free
@@ -221,7 +242,7 @@ func (c *compactor) compact(dst []float64) []float64 {
 	}
 
 	// choose either the evens or the odds
-	offs := rand.Intn(2)
+	offs := co.toss()
 	for len(*c) >= 2 {
 		l := len(*c) - 2
 		dst = append(dst, (*c)[l+offs])
@@ -229,4 +250,19 @@ func (c *compactor) compact(dst []float64) []float64 {
 	}
 
 	return dst
+}
+
+func (c compactor) insertionSort() {
+	l := len(c)
+	for i := 1; i < l; i++ {
+		v := c[i]
+		j := i
+		for ; j > 0 && c[j-1] > v; j-- {
+		}
+		if j == i {
+			continue
+		}
+		copy(c[j+1:], c[j:i])
+		c[j] = v
+	}
 }
